@@ -5,8 +5,6 @@ import User from "../models/user.model";
 import { generateToken } from "../utils/generateToken";
 import { config } from "../config";
 
-import PasswordresetToken from "../models/resetToken.model";
-
 /* ---------- SIGN‑UP ---------- */
 export const signup: RequestHandler = async (req, res) => {
   try {
@@ -75,9 +73,12 @@ export const logout: RequestHandler = (_req, res) => {
 export const forgotPassword: RequestHandler = async (req, res) => {
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select(
+      "+resetTokenHash +resetTokenExpires"
+    );
 
     if (!user) {
+      // To avoid revealing if user exists
       res.json({ message: "If the email exists, a reset link has been sent." });
       return;
     }
@@ -87,18 +88,14 @@ export const forgotPassword: RequestHandler = async (req, res) => {
       .createHash("sha256")
       .update(resetToken)
       .digest("hex");
-    const expiresAt = new Date(Date.now() + 1000 * 60 * 10); // 10 minutes from now
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 10); // 10 minutes
 
-    // Remove any existing tokens for this user (optional but recommended)
-    await PasswordresetToken.deleteMany({ userId: user._id });
+    // Save hash and expiry in user document
+    user.resetTokenHash = hashedToken;
+    user.resetTokenExpires = expiresAt;
+    await user.save();
 
-    // Create and save new reset token
-    await PasswordresetToken.create({
-      userId: user._id,
-      tokenHash: hashedToken,
-      expiresAt,
-    });
-    // TODO: send email with `resetToken`
+    // TODO: send email with raw resetToken (not hashedToken)
     res.json({ message: "Reset link sent" });
   } catch (error) {
     console.error(error);
@@ -114,29 +111,22 @@ export const resetPassword: RequestHandler = async (req, res) => {
 
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-    // Find the reset token document (not user)
-    const resetTokenDoc = await PasswordresetToken.findOne({
-      tokenHash: hashedToken,
-      expiresAt: { $gt: new Date() },
-    });
+    // Find user with matching token hash and token not expired
+    const user = await User.findOne({
+      resetTokenHash: hashedToken,
+      resetTokenExpires: { $gt: new Date() },
+    }).select("+resetTokenHash +resetTokenExpires");
 
-    if (!resetTokenDoc) {
+    if (!user) {
       res.status(400).json({ message: "Token invalid or expired" });
       return;
     }
 
-    // Find the user by userId from reset token document
-    const user = await User.findById(resetTokenDoc.userId);
-    if (!user) {
-      res.status(400).json({ message: "User not found" });
-      return;
-    }
-    // Update user password
+    // Update password and clear reset token fields
     user.password = await bcrypt.hash(newPassword, config.saltRounds);
+    user.resetTokenHash = undefined;
+    user.resetTokenExpires = undefined;
     await user.save();
-
-    // Delete the used reset token
-    await resetTokenDoc.deleteOne();
 
     res.json({ message: "Password updated" });
   } catch (error) {
