@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createPost,
+
   getPublishedPosts,
   getPostStatus,
   updatePost,
@@ -18,5 +19,6 @@ router.get("/published", getPublishedPosts);
 router.get("/:id/status", protect, getPostStatus);
 router.patch("/:id", protect, updatePost);
 router.delete("/:id", protect, deletePost);
+
 
 export default router;

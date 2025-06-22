@@ -1,3 +1,4 @@
+
 import User from "../models/user.model";
 import { Request, Response } from "express";
 import Post from "../models/post.model";
@@ -114,9 +115,11 @@ export async function updatePost(req: Request, res: Response): Promise<void> {
 
     const post = await Post.findById(id);
     if (!post || !isOwnerOrAdmin(req.user, post)) {
+
       res.status(404).json({ message: "Post not found" });
       return;
     }
+
 
     if (post.status !== "scheduled") {
       res.status(400).json({ message: "Cannot update after publish/failed" });
@@ -198,3 +201,4 @@ export async function deletePost(req: Request, res: Response): Promise<void> {
     res.status(500).json({ message: "Server error" });
   }
 }
+

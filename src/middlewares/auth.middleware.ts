@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { config } from "../config";
 
+
 /* -------------------------------------------------------------------------- */
 /* 1.  Augment Express.Request with a typed "user" field                      */
 /* -------------------------------------------------------------------------- */
@@ -11,6 +12,7 @@ declare module "express-serve-static-core" {
       id: string;
       role: "user" | "admin";
     };
+
   }
 }
 
@@ -47,7 +49,9 @@ export function protect(req: Request, res: Response, next: NextFunction) {
       config.jwtSignInSecret
     ) as AccessTokenPayload;
 
+
     req.user = { id: decoded.userId, role: decoded.role };
+
     next();
   } catch (err) {
     console.error("JWT verification failed:", err);
@@ -55,9 +59,11 @@ export function protect(req: Request, res: Response, next: NextFunction) {
   }
 }
 
+
 export function authorize(...allowedRoles: ("user" | "admin")[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user || !allowedRoles.includes(req.user.role)) {
+
       return res.status(403).json({ message: "Forbidden" });
     }
     next();

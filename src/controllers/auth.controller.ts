@@ -10,6 +10,7 @@ import {
 } from "../email/email.service";
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+
 /* ---------- SIGN‑UP ---------- */
 export const signup: RequestHandler = async (req, res) => {
   try {
@@ -134,12 +135,16 @@ export const forgotPassword: RequestHandler = async (
   res
 ): Promise<void> => {
   try {
+
     const { email } = req.body as { email?: string };
 
     // Always return generic response to prevent email enumeration
     const genericOk = () => {
+
+    
       res.json({ message: "If the email exists, a reset link has been sent." });
     };
+
 
     if (!email) return genericOk();
 
@@ -156,6 +161,7 @@ export const forgotPassword: RequestHandler = async (
     genericOk(); // ✅ no return
   } catch (err) {
     console.error("Forgot password error:", err);
+
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -182,6 +188,7 @@ export async function resetPassword(
       return;
     }
 
+
     // -------- find user via hashed token ----------
     const hashed = crypto.createHash("sha256").update(token).digest("hex");
 
@@ -190,10 +197,12 @@ export async function resetPassword(
       resetTokenExpires: { $gt: new Date() },
     }).select("+resetTokenHash +resetTokenExpires");
 
+
     if (!user) {
       res.status(400).json({ message: "Token invalid or expired" });
       return;
     }
+
 
     // -------- update password & clear reset fields ----------
     user.password = await bcrypt.hash(newPassword, Number(config.saltRounds));
@@ -237,5 +246,6 @@ export const verifyEmail: RequestHandler = async (req, res) => {
   } catch (err) {
     console.error("Email verification error:", err);
     res.status(500).json({ message: "Server error." });
+
   }
 };

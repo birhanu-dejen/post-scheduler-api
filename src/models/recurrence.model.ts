@@ -9,10 +9,12 @@ const recurrenceRuleSchema = new mongoose.Schema(
     },
     frequency: {
       type: String,
+
       enum: ["minute", "daily", "weekly", "monthly"],
       required: true,
     },
     interval: { type: Number, default: 1 },
+
     nextRun: { type: Date, required: true },
   },
   { timestamps: true }
