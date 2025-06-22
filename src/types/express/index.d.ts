@@ -3,7 +3,7 @@ declare namespace Express {
   export interface Request {
     user?: {
       id: string; // Assuming userId is a string
-      username: string; // Add other user properties from JWT if needed
+      role?: "user" | "admin"; // Add other user properties from JWT if needed
     };
   }
 }
