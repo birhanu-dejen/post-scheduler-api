@@ -1,5 +1,10 @@
-import mongoose, { Schema, Document } from "mongoose";
-
+import mongoose, {
+  Schema,
+  model,
+  Types,
+  InferSchemaType,
+  HydratedDocument,
+} from "mongoose";
 export type PostStatus = "scheduled" | "published" | "failed";
 
 export interface IPost extends Document {
@@ -21,5 +26,11 @@ const PostSchema: Schema = new Schema({
     default: "scheduled",
   },
 });
+
+export type PostDoc = HydratedDocument<
+  InferSchemaType<typeof PostSchema>,
+  {},
+  { _id: Types.ObjectId } // 👈 overrides the default `unknown`
+>;
 
 export default mongoose.model<IPost>("Post", PostSchema);
