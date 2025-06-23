@@ -1,34 +1,24 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction, RequestHandler } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { config } from "../config";
 
-
-/* -------------------------------------------------------------------------- */
-/* 1.  Augment Express.Request with a typed "user" field                      */
-/* -------------------------------------------------------------------------- */
 declare module "express-serve-static-core" {
   interface Request {
     user?: {
-      id: string;
+      userId: string;
       role: "user" | "admin";
     };
-
   }
 }
 
-/* -------------------------------------------------------------------------- */
-/* 2.  Shape of what we expect inside our access token                        */
-/* -------------------------------------------------------------------------- */
 interface AccessTokenPayload extends JwtPayload {
-  id: string;
+  userId: string;
   role: "user" | "admin";
 }
 
-/* -------------------------------------------------------------------------- */
-/* 3.  protect — verifies JWT and attaches req.user                           */
-/* -------------------------------------------------------------------------- */
 export function protect(req: Request, res: Response, next: NextFunction) {
   try {
+    // Extract token from Authorization header or cookie
     const authHeader = req.headers.authorization?.startsWith("Bearer ")
       ? req.headers.authorization
       : undefined;
@@ -43,15 +33,13 @@ export function protect(req: Request, res: Response, next: NextFunction) {
       res.status(401).json({ message: "Not authorized" });
       return;
     }
-
+    // Verify JWT and extract payload
     const decoded = jwt.verify(
       rawToken,
       config.jwtSignInSecret
     ) as AccessTokenPayload;
 
-
-    req.user = { id: decoded.userId, role: decoded.role };
-
+    req.user = { userId: decoded.userId, role: decoded.role };
     next();
   } catch (err) {
     console.error("JWT verification failed:", err);
@@ -59,13 +47,18 @@ export function protect(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-
-export function authorize(...allowedRoles: ("user" | "admin")[]) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user || !allowedRoles.includes(req.user.role)) {
-
-      return res.status(403).json({ message: "Forbidden" });
+export const authorize =
+  (...allowedRoles: ("user" | "admin")[]): RequestHandler =>
+  (req: Request, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
     }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
+
     next();
   };
-}

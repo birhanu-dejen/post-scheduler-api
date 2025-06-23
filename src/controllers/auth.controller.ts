@@ -1,6 +1,8 @@
 import { RequestHandler } from "express";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
+import { Request, Response, NextFunction } from "express";
 import User from "../models/user.model";
 import { generateResetToken } from "../utils/tokens";
 import { config } from "../config";
@@ -8,10 +10,7 @@ import {
   sendForgotPassword,
   sendSignUpVerification,
 } from "../email/email.service";
-import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
 
-/* ---------- SIGN‑UP ---------- */
 export const signup: RequestHandler = async (req, res) => {
   try {
     const { email, password, name } = req.body;
@@ -39,19 +38,17 @@ export const signup: RequestHandler = async (req, res) => {
       verificationTokenExpires,
     });
 
-    const verificationLink = `http://localhost:5000/verify-email?token=${verificationToken}`;
+    const verificationLink = `${config.port}/verifyemail?token=${verificationToken}`;
     await sendSignUpVerification(email, name, verificationLink);
-    res.status(201).json({ message: "please check your email to verify" });
+    res.status(201).json({ message: "Please check your email to verify" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Unknown error occurred" });
   }
 };
 
-/* ---------- SIGN‑IN ---------- */
 export const signin: RequestHandler = async (req, res) => {
   try {
-    /* 1️⃣  Field check -------------------------------------------------- */
     const { email, password } = (req.body ?? {}) as {
       email?: string;
       password?: string;
@@ -59,10 +56,9 @@ export const signin: RequestHandler = async (req, res) => {
 
     if (!email || !password) {
       res.status(400).json({ message: "Email and password required" });
-      return; // <- void ✔
+      return;
     }
 
-    /* 2️⃣  Find user & verify ------------------------------------------ */
     const user = await User.findOne({ email }).select("+password");
     if (!user) {
       res.status(401).json({ message: "Invalid credentials" });
@@ -82,21 +78,19 @@ export const signin: RequestHandler = async (req, res) => {
       return;
     }
 
-    /* 3️⃣  Issue JWT --------------------------------------------------- */
     const token = jwt.sign(
       { userId: user.id, role: user.role }, // `user.id` is always a string
       config.jwtSignInSecret,
       { expiresIn: "2d" }
     );
-
-    /* 4️⃣  Send cookie + JSON (void) ----------------------------------- */
+    // Cookie config: httpOnly prevents JS access, sameSite avoids CSRF
     res
       .cookie("accessToken", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
         path: "/",
-        maxAge: 60 * 60 * 1000, // 1 h
+        maxAge: 2 * 24 * 60 * 60 * 1000,
       })
       .json({
         message: "Logged in successfully",
@@ -109,19 +103,16 @@ export const signin: RequestHandler = async (req, res) => {
     return;
   }
 };
-/* ---------- LOGOUT (stateless) ---------- */
 
 export const logout: RequestHandler = async (req, res) => {
   try {
-    /* 2️⃣  Clear the HTTP-only cookie that holds the access token */
     res.clearCookie("accessToken", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      path: "/", // must match the path used when setting
+      path: "/",
     });
 
-    /* 3️⃣  Respond with a success message (200 OK) */
     res.status(200).json({ message: "Logged out successfully" });
   } catch (err) {
     console.error(err);
@@ -129,22 +120,16 @@ export const logout: RequestHandler = async (req, res) => {
   }
 };
 
-/* ---------- FORGOT‑PASSWORD ---------- */
 export const forgotPassword: RequestHandler = async (
   req,
   res
 ): Promise<void> => {
   try {
-
     const { email } = req.body as { email?: string };
-
-    // Always return generic response to prevent email enumeration
+    // Always return same response to avoid email enumeration
     const genericOk = () => {
-
-    
       res.json({ message: "If the email exists, a reset link has been sent." });
     };
-
 
     if (!email) return genericOk();
 
@@ -155,18 +140,16 @@ export const forgotPassword: RequestHandler = async (
 
     const token = await generateResetToken(user);
 
-    const resetUrl = `https://your-site.com/resetpassword?token=${token}`;
+    const resetUrl = `${config.port}/reset-password?token=${token}`;
     await sendForgotPassword(email, resetUrl);
 
-    genericOk(); // ✅ no return
+    genericOk();
   } catch (err) {
     console.error("Forgot password error:", err);
-
     res.status(500).json({ message: "Server error" });
   }
 };
-/* ---------- RESET‑PASSWORD ---------- */
-
+//todo i will fix the reset token mismatch error
 export async function resetPassword(
   req: Request,
   res: Response,
@@ -176,7 +159,6 @@ export async function resetPassword(
     const token = req.query.token as string | undefined;
     const { newPassword } = (req.body ?? {}) as { newPassword?: string };
 
-    // -------- validate input ----------
     if (!token) {
       res.status(400).json({ message: "Token missing" });
       return;
@@ -188,8 +170,6 @@ export async function resetPassword(
       return;
     }
 
-
-    // -------- find user via hashed token ----------
     const hashed = crypto.createHash("sha256").update(token).digest("hex");
 
     const user = await User.findOne({
@@ -197,25 +177,20 @@ export async function resetPassword(
       resetTokenExpires: { $gt: new Date() },
     }).select("+resetTokenHash +resetTokenExpires");
 
-
     if (!user) {
       res.status(400).json({ message: "Token invalid or expired" });
       return;
     }
 
-
-    // -------- update password & clear reset fields ----------
     user.password = await bcrypt.hash(newPassword, Number(config.saltRounds));
     user.resetTokenHash = user.resetTokenExpires = undefined;
     await user.save();
 
     res.json({ message: "Password updated" });
   } catch (err) {
-    next(err); // let central error handler log/format
+    next(err);
   }
 }
-
-/* ---------- VERIFY‑EMAIL ---------- */
 
 export const verifyEmail: RequestHandler = async (req, res) => {
   try {
@@ -236,7 +211,6 @@ export const verifyEmail: RequestHandler = async (req, res) => {
       return;
     }
 
-    // Mark verified and clear token fields
     user.emailVerified = true;
     user.verificationToken = undefined;
     user.verificationTokenExpires = undefined;
@@ -246,6 +220,5 @@ export const verifyEmail: RequestHandler = async (req, res) => {
   } catch (err) {
     console.error("Email verification error:", err);
     res.status(500).json({ message: "Server error." });
-
   }
 };

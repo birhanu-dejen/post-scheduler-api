@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import Post from "../models/post.model";
 
-// @desc    Admin view scheduled posts
+// Admin view scheduled posts
 export const getAllScheduledPosts = async (
   req: Request,
   res: Response,
@@ -12,13 +12,13 @@ export const getAllScheduledPosts = async (
       "userId",
       "email"
     );
-    res.json(posts);
+    res.status(200).json(posts);
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Admin view published posts
+// Admin view published posts
 export const getAllPublishedPosts = async (
   req: Request,
   res: Response,
@@ -29,7 +29,7 @@ export const getAllPublishedPosts = async (
       "userId",
       "email"
     );
-    res.json(posts);
+    res.status(200).json(posts);
   } catch (error) {
     next(error);
   }

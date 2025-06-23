@@ -1,11 +1,8 @@
-// utils/email.ts
 import nodemailer from "nodemailer";
-
 const transporter = nodemailer.createTransport({
   service: "gmail",
   port: 587,
-  secure: false,
-  // or 'smtp.ethereal.email' for testing
+  secure: false, //true for 465
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -31,7 +28,7 @@ export const sendEmail = async ({ to, subject, html }: MailOptions) => {
     console.log("Email sent:", info.response);
     return info;
   } catch (error) {
-    console.error("Error sending email:", error);
+    console.error("Error sending email:", (error as Error).message);
     throw error;
   }
 };

@@ -16,7 +16,7 @@ agenda.define(JOB_NAME, async (job: any) => {
     post.publishedAt = new Date();
     await post.save();
 
-    // Email user
+    // Notify the user by email if email exists
     const user = await User.findById(post.userId);
     if (user?.email) {
       const postUrl = `https://your-site.com/posts/${post._id}`;
@@ -24,13 +24,14 @@ agenda.define(JOB_NAME, async (job: any) => {
       await sendPostPublishedNotification(user.email, title, postUrl);
     }
 
-    // Log success
+    // Log successful publication
     await NotificationLog.create({
       userId: post.userId,
       type: "post_published",
       message: `Post ${post._id} published.`,
     });
   } catch (err) {
+    // On error, mark post as failed and log failure
     post.status = "failed";
     await post.save();
 

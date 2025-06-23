@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import app from "./app";
 import { config } from "./config";
-import { startAgenda } from "./jobs/agenda"; // ✅ FIX: Import startAgenda
+import { startAgenda } from "./jobs/agenda";
 
 mongoose
   .connect(config.mongoUri)

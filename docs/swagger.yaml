@@ -1,0 +1,215 @@
+openapi: 3.0.0
+info:
+  title: Post Scheduler API
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+    inheritAuth:
+      type: http
+      scheme: inherit
+tags:
+  - name: auth
+  - name: posts(user)
+  - name: posts(admin)
+  - name: public
+paths:
+  /api/auth/reset-password/<>:
+    post:
+      tags:
+        - auth
+      summary: Reset Password
+      requestBody:
+        content: {}
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /api/auth/signup:
+    post:
+      tags:
+        - auth
+      summary: Signup
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                name: Test User
+                email: testuser@example.com
+                password: Password123!
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /api/auth/verify-email:
+    get:
+      tags:
+        - auth
+      summary: Verify Email
+      parameters:
+        - name: token
+          in: query
+          schema:
+            type: string
+          example: $2b$12$qftoXl7zbaZ6gaIJbFgKjeOBy5Gvys1E9QjcfcmGHaDbB3fzs.hyu
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /api/auth/logout:
+    post:
+      tags:
+        - auth
+      summary: Logout
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example: ""
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /api/auth/forgot-password:
+    post:
+      tags:
+        - auth
+      summary: Forgot Password
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                email: birhanudejen617@gmail.com
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /api/auth/signin:
+    post:
+      tags:
+        - auth
+      summary: Signin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                name: Test User
+                email: birhanudejen617@gmail.com
+                password: Password123!
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /api/posts/create:
+    post:
+      tags:
+        - posts(user)
+      summary: Create Post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                content: >-
+                  my first programing language is python and my first content is
+                  this
+                scheduledTime: "2025-06-23T20:30:17.000Z"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /api/posts/68585a3f2a300dbc524af770:
+    patch:
+      tags:
+        - posts(user)
+      summary: Update Post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                content: Updated post content
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - posts(user)
+      summary: Delete Post
+      security:
+        - inheritAuth: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /api/posts/68585a3f2a300dbc524af770/status:
+    get:
+      tags:
+        - posts(user)
+      summary: GET Post Status
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /api/admin/posts/published:
+    get:
+      tags:
+        - posts(admin)
+      summary: Get Published Posts
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /api/admin/posts/scheduled:
+    get:
+      tags:
+        - posts(admin)
+      summary: Get Scheduled Posts
+      security:
+        - inheritAuth: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /api/posts/published:
+    get:
+      tags:
+        - public
+      summary: " Get Published Posts"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
