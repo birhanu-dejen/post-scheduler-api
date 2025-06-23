@@ -2,39 +2,58 @@ openapi: 3.0.0
 info:
   title: Post Scheduler API
   version: 1.0.0
+
 servers:
   - url: http://localhost:5000
+
+# 🔐 Global auth: every path now requires a Bearer token
+security:
+  - bearerAuth: []
+
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
-    inheritAuth:
-      type: http
-      scheme: inherit
+      bearerFormat: JWT # optional, clarifies intent
+
 tags:
   - name: auth
   - name: posts(user)
   - name: posts(admin)
   - name: public
+
 paths:
-  /api/auth/reset-password/<>:
-    post:
-      tags:
-        - auth
+  /api/auth/reset-password:
+    patch:
+      tags: [auth]
       summary: Reset Password
+      security: [] # public
       requestBody:
-        content: {}
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                newPassword:
+                  type: string
+            example:
+              token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+              newPassword: NewSecurePassword123!
       responses:
         "200":
           description: Successful response
           content:
             application/json: {}
+
   /api/auth/signup:
     post:
-      tags:
-        - auth
+      tags: [auth]
       summary: Signup
+      security: [] # public
       requestBody:
         content:
           application/json:
@@ -42,50 +61,53 @@ paths:
               type: object
               example:
                 name: Test User
-                email: testuser@example.com
+                email: birhanudejen617@gmail.com
                 password: Password123!
       responses:
         "200":
           description: Successful response
           content:
             application/json: {}
+
   /api/auth/verify-email:
     get:
-      tags:
-        - auth
+      tags: [auth]
       summary: Verify Email
+      security: [] # public
       parameters:
         - name: token
           in: query
           schema:
             type: string
-          example: $2b$12$qftoXl7zbaZ6gaIJbFgKjeOBy5Gvys1E9QjcfcmGHaDbB3fzs.hyu
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
       responses:
         "200":
           description: Successful response
           content:
             application/json: {}
+
   /api/auth/logout:
     post:
-      tags:
-        - auth
+      tags: [auth]
       summary: Logout
+      security: [] # public (adjust if you require auth)
       requestBody:
         content:
           application/json:
             schema:
               type: object
-              example: ""
+              example: {}
       responses:
         "200":
           description: Successful response
           content:
             application/json: {}
+
   /api/auth/forgot-password:
     post:
-      tags:
-        - auth
+      tags: [auth]
       summary: Forgot Password
+      security: [] # public
       requestBody:
         content:
           application/json:
@@ -98,11 +120,12 @@ paths:
           description: Successful response
           content:
             application/json: {}
+
   /api/auth/signin:
     post:
-      tags:
-        - auth
+      tags: [auth]
       summary: Signin
+      security: [] # public
       requestBody:
         content:
           application/json:
@@ -117,10 +140,10 @@ paths:
           description: Successful response
           content:
             application/json: {}
+
   /api/posts/create:
     post:
-      tags:
-        - posts(user)
+      tags: [posts(user)]
       summary: Create Post
       requestBody:
         content:
@@ -128,21 +151,19 @@ paths:
             schema:
               type: object
               example:
-                content: >-
+                content: >
                   my first programing language is python and my first content is
                   this
                 scheduledTime: "2025-06-23T20:30:17.000Z"
-      security:
-        - bearerAuth: []
       responses:
         "200":
           description: Successful response
           content:
             application/json: {}
-  /api/posts/68585a3f2a300dbc524af770:
+
+  /api/posts/68596aee0ece56220eb75f0c:
     patch:
-      tags:
-        - posts(user)
+      tags: [posts(user)]
       summary: Update Post
       requestBody:
         content:
@@ -151,63 +172,57 @@ paths:
               type: object
               example:
                 content: Updated post content
-      security:
-        - bearerAuth: []
       responses:
         "200":
           description: Successful response
           content:
             application/json: {}
+
+  /api/posts/68595e5c50a4f4d12edf29d6:
     delete:
-      tags:
-        - posts(user)
+      tags: [posts(user)]
       summary: Delete Post
-      security:
-        - inheritAuth: []
       responses:
         "200":
           description: Successful response
           content:
             application/json: {}
-  /api/posts/68585a3f2a300dbc524af770/status:
+
+  /api/posts/68595e5c50a4f4d12edf29d6/status:
     get:
-      tags:
-        - posts(user)
-      summary: GET Post Status
-      security:
-        - bearerAuth: []
+      tags: [posts(user)]
+      summary: Get Post Status
       responses:
         "200":
           description: Successful response
           content:
             application/json: {}
+
   /api/admin/posts/published:
     get:
-      tags:
-        - posts(admin)
+      tags: [posts(admin)]
       summary: Get Published Posts
       responses:
         "200":
           description: Successful response
           content:
             application/json: {}
+
   /api/admin/posts/scheduled:
     get:
-      tags:
-        - posts(admin)
+      tags: [posts(admin)]
       summary: Get Scheduled Posts
-      security:
-        - inheritAuth: []
       responses:
         "200":
           description: Successful response
           content:
             application/json: {}
+
   /api/posts/published:
     get:
-      tags:
-        - public
-      summary: " Get Published Posts"
+      tags: [public]
+      summary: Get Published Posts (public feed)
+      security: [] # public
       responses:
         "200":
           description: Successful response

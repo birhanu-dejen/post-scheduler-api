@@ -42,13 +42,12 @@ npm install
 
 # Local MongoDB
 
-MONGO_URI=mongodb://localhost:27017
+MONGO_URI=mongodb://localhost:27017 or your mongodb atlas URI
 
 # JWT secrets
 
 JWT_SECRET_SIGNIN=your_signin_secret
 JWT_SECRET_VERIFY=your_verify_secret
-JWT_SECRET_RESET=your_reset_secret
 
 # Password hashing strength
 

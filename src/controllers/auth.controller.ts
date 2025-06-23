@@ -38,7 +38,7 @@ export const signup: RequestHandler = async (req, res) => {
       verificationTokenExpires,
     });
 
-    const verificationLink = `${config.port}/verifyemail?token=${verificationToken}`;
+    const verificationLink = `https://localhost:${config.port}/verify-email?token=${verificationToken}`;
     await sendSignUpVerification(email, name, verificationLink);
     res.status(201).json({ message: "Please check your email to verify" });
   } catch (error) {
@@ -140,7 +140,7 @@ export const forgotPassword: RequestHandler = async (
 
     const token = await generateResetToken(user);
 
-    const resetUrl = `${config.port}/reset-password?token=${token}`;
+    const resetUrl = `http://localhost:${config.port}/reset-password?token=${token}`;
     await sendForgotPassword(email, resetUrl);
 
     genericOk();
