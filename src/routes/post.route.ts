@@ -9,14 +9,12 @@ import {
 import { protect } from "../middlewares/auth.middleware";
 
 const router = Router();
+router.get("/published", getPublishedPosts); // public, no protect
 
-// protect every route
-//router.use(authMiddleware);
-
-router.post("/create", protect, createPost);
-router.get("/published", getPublishedPosts);
-router.get("/:id/status", protect, getPostStatus);
-router.patch("/:id", protect, updatePost);
-router.delete("/:id", protect, deletePost);
+router.use(protect); // protect everything below
+router.post("/create", createPost);
+router.get("/:id/status", getPostStatus);
+router.patch("/:id", updatePost);
+router.delete("/:id", deletePost);
 
 export default router;

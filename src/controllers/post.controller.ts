@@ -1,24 +1,21 @@
-import User from "../models/user.model";
 import { Request, Response } from "express";
 import Post from "../models/post.model";
 import RecurrenceRule from "../models/recurrence.model";
 import { schedulePublish } from "../jobs/publishJob";
 import { scheduleRecurrence } from "../jobs/reccurJob";
 import { agenda } from "../jobs/agenda";
-import { sendPostPublishedNotification } from "../email/email.service";
+import mongoose from "mongoose";
+// Check if the current user is an admin or the owner of the post
 const isOwnerOrAdmin = (user: Request["user"], post: any) =>
-  user?.role === "admin" || post.userId.toString() === user?.id;
+  user?.role === "admin" || post.userId.toString() === user?.userId;
 
-/* ----------------------------- 1. Create post ----------------------------- */
 export async function createPost(req: Request, res: Response): Promise<void> {
   try {
-    /* ---------- 1. Auth ---------- */
     if (!req.user) {
       res.status(401).json({ message: "Unauthorized" });
       return;
     }
 
-    /* ---------- 2. Validate body ---------- */
     const { content, scheduledTime, recurrence } = req.body;
     if (!content || !scheduledTime) {
       res.status(400).json({ message: "content & scheduledTime required" });
@@ -31,18 +28,15 @@ export async function createPost(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    /* ---------- 3. Create post ---------- */
     const post = await Post.create({
-      userId: req.user.id,
+      userId: req.user.userId,
       content,
       scheduledTime: when,
       status: "scheduled",
     });
 
-    /* ---------- 4. Schedule first publish ---------- */
     await schedulePublish(when, post._id.toString());
 
-    /* ---------- 5. Handle optional recurrence ---------- */
     if (recurrence?.frequency) {
       const rule = await RecurrenceRule.create({
         postId: post._id,
@@ -53,15 +47,13 @@ export async function createPost(req: Request, res: Response): Promise<void> {
       await scheduleRecurrence(when, rule._id.toString());
     }
 
-    /* ---------- 6. Respond ---------- */
     res.status(201).json({ post });
   } catch (err) {
-    console.error("Create post error:", err);
+    console.error("Createpost:", err);
     res.status(500).json({ message: "Server error" });
   }
 }
 
-/* ------------------------ 2. Get published posts -------------------------- */
 export async function getPublishedPosts(
   _req: Request,
   res: Response
@@ -77,7 +69,6 @@ export async function getPublishedPosts(
   }
 }
 
-/* -------------------------- 3. Get post status ---------------------------- */
 export async function getPostStatus(
   req: Request,
   res: Response
@@ -88,20 +79,31 @@ export async function getPostStatus(
       return;
     }
 
-    const post = await Post.findById(req.params.id);
-    if (!post || !isOwnerOrAdmin(req.user, post)) {
+    const { id } = req.params;
+    //validate ObjectId before querying
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ message: "Invalid post ID" });
+      return;
+    }
+
+    const post = await Post.findById(id).lean();
+    if (!post) {
       res.status(404).json({ message: "Post not found" });
       return;
     }
 
-    res.json({ status: post.status });
+    if (!isOwnerOrAdmin(req.user, post)) {
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
+
+    res.status(200).json({ status: post.status });
   } catch (err) {
-    console.error(err);
+    console.error("getPostStatus:", err);
     res.status(500).json({ message: "Server error" });
   }
 }
 
-/* ------------------------ 4. Update scheduled post ------------------------ */
 export async function updatePost(req: Request, res: Response): Promise<void> {
   try {
     if (!req.user) {
@@ -111,7 +113,11 @@ export async function updatePost(req: Request, res: Response): Promise<void> {
 
     const { id } = req.params;
     const { content, scheduledTime, recurrence } = req.body;
-
+    //Validate ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ message: "Invalid post ID" });
+      return;
+    }
     const post = await Post.findById(id);
     if (!post || !isOwnerOrAdmin(req.user, post)) {
       res.status(404).json({ message: "Post not found" });
@@ -122,7 +128,7 @@ export async function updatePost(req: Request, res: Response): Promise<void> {
       res.status(400).json({ message: "Cannot update after publish/failed" });
       return;
     }
-
+    //  Only update what has changed
     if (content) post.content = content;
     if (scheduledTime) {
       const when = new Date(scheduledTime);
@@ -136,8 +142,8 @@ export async function updatePost(req: Request, res: Response): Promise<void> {
     }
     await post.save();
 
-    await agenda.cancel({ "data.postId": id });
-    await schedulePublish(post.scheduledTime, id);
+    await agenda.cancel({ "data.postId": id }); // Ensure old job is removed
+    await schedulePublish(post.scheduledTime, id); //Always reschedule
 
     const rule = await RecurrenceRule.findOne({ postId: id });
     if (recurrence?.frequency) {
@@ -156,6 +162,7 @@ export async function updatePost(req: Request, res: Response): Promise<void> {
         await scheduleRecurrence(post.scheduledTime, newRule._id.toString());
       }
     } else if (rule) {
+      //  Clean up recurrence rule if it no longer exists
       await agenda.cancel({ "data.ruleId": rule._id.toString() });
       await rule.deleteOne();
     }
@@ -167,7 +174,6 @@ export async function updatePost(req: Request, res: Response): Promise<void> {
   }
 }
 
-/* -------------------- 5. Delete scheduled (unpublished) ------------------- */
 export async function deletePost(req: Request, res: Response): Promise<void> {
   try {
     if (!req.user) {
@@ -189,10 +195,11 @@ export async function deletePost(req: Request, res: Response): Promise<void> {
 
     await agenda.cancel({ "data.postId": id });
     await RecurrenceRule.deleteMany({ postId: id });
+    //  Don’t cancel all rules globally – filter by post
     await agenda.cancel({ "data.ruleId": { $exists: true } });
 
     await post.deleteOne();
-    res.status(204).send();
+    res.status(204).send({ message: "post deleted successfully" }); // use a body for client feedback
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });

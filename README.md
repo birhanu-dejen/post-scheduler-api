@@ -1,50 +1,80 @@
-# Post Scheduler API
+# 📬 Post Scheduler API
 
-A Node.js/Express backend to schedule, publish, and manage posts at specific times.
+A Node.js/Express backend that lets users create, schedule, and automatically publish posts at specific times.
 
-## Features
+---
 
-- User registration/login with JWT
-- Create, update, delete, and schedule posts
-- Automatic publishing (with job scheduler)
-- View published posts
-- Rate limiting & error handling
-- Admin endpoints
-- Swagger API docs
+## 🚀 Features
 
-## Setup
+|                             |                                                               |
+| --------------------------- | ------------------------------------------------------------- |
+| 🔐 **Authentication**       | Secure sign-up and login with JWT                             |
+| 📝 **Post Management**      | Create, update, delete, and schedule posts                    |
+| ⏱️ **Automatic Publishing** | Agenda publishes posts at their scheduled time                |
+| 📊 **Post Status**          | Check whether a post is _scheduled_, _published_, or _failed_ |
+| 👑 **Admin Access**         | Admins can view and manage every post                         |
+| 📧 **Email Notifications**  | Users receive an email when their post is published           |
+| ♻️ **Recurring Posts**      | Daily, weekly, and other recurring schedules supported        |
+| 📉 **Rate Limiting**        | Protects the API from abuse                                   |
+| 🛡️ **Error Handling**       | Consistent, helpful error responses                           |
+| 📚 **API Docs**             | Swagger UI available at `/api-docs`                           |
 
-1. Clone and install dependencies:
+---
 
-   ```bash
-   git clone <repo-url>
-   cd post-scheduler
-   npm install
-   ```
+## ⚙️ Setup
 
-2. Create a `.env` file from `.env.example` and fill in your values.
+1. **Clone the repo**
 
-3. Start MongoDB locally or use a cloud provider.
+```bash
+ git clone https://github.com/birhanudejen/post-scheduler-api
+ cd post-scheduler-api
+```
 
-4. Run the app in dev mode:
+2. **Install dependencies**
 
-   ```bash
-   npm run dev
-   ```
+```bash
+npm install
 
-5. Build and run for production:
+```
 
-   ```bash
-   npm run build
-   npm start
-   ```
+3. **Configure environment variables**
+   PORT=5000
 
-6. Visit API docs at `/swagger` (when set up).
+# Local MongoDB
 
-## API Documentation
+MONGO_URI=mongodb://localhost:27017
 
-See [`swagger.yaml`](./swagger.yaml) for the full OpenAPI spec.
+# JWT secrets
 
-## License
+JWT_SECRET_SIGNIN=your_signin_secret
+JWT_SECRET_VERIFY=your_verify_secret
+JWT_SECRET_RESET=your_reset_secret
 
-MIT
+# Password hashing strength
+
+BCRYPT_SALT_ROUNDS=12
+
+# Email credentials
+
+EMAIL_USER=your_email@example.com
+EMAIL_PASS=your_email_password
+
+```bash
+npm run dev
+```
+
+4. Explore the API
+
+Visit [`http://localhost:5000/api-docs`](http://localhost:5000/api-docs) to explore and test endpoints using Swagger UI.
+🧠 Tech Stack
+
+- **Database**: MongoDB
+- **Scheduler**: Agenda
+- **Authentication**: JWT
+- **Email Service**: Nodemailer
+- **Docs**: Swagger / OpenAPI
+- **Security**: Helmet, CORS, express-rate-limit
+
+## 📄 License
+
+All rights reserved. This project and its source code are the intellectual property of the author and may not be used, copied, modified, or distributed without explicit permission.
